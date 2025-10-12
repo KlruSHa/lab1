@@ -1,5 +1,5 @@
 import pytest
-from main import count_expr, count_bracket
+from src.main import count_expr, count_bracket
 
 
 @pytest.mark.parametrize("expr, expected", [
