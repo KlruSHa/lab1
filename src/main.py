@@ -16,7 +16,7 @@ class Stack:
 
     def pop(self):
         if not self.items:
-            raise IndexError("Удаление с пустого стека")
+            raise IndexError("Недостаточно операндов")
         return self.items.pop()
 
     def is_empty(self):
@@ -24,33 +24,32 @@ class Stack:
 
 
 numbers_stack = Stack()
+bracket_indexes = Stack()
 
 
-def count_bracket(expr):
+def count_bracket(expr, p):
     """
-            Вычисляет математическое выражение в обратной польской нотации со скобками,
-            путем рекурсивного раскрытия скобок
-            Поддерживает работу с int\float и операциями + \ - \ * \ ** \ // \ % \ /
+    Вычисляет математическое выражение в обратной польской нотации со скобками,
+    путем рекурсивного раскрытия скобок
+    Поддерживает работу с int | float и операциями + | - | * | ** | // | % | /
 
-            Args:
-                expr (str): Математическое выражение без скобок в виде строки
+    Args:
+        expr (str): Математическое выражение без скобок в виде строки
+        p : Индекс, с которого начнем идти по строке
 
-            Returns:
-                int | float: Результат вычисления выражения
+    Returns:
+        int | float: Результат вычисления выражения
     """
-    global numbers_stack
-    b_1 = -1
-    b_2 = -1
     if "(" in expr and ")" in expr:
-        for i in range(len(expr)):
+        for i in range(p, len(expr)):
             if expr[i] == "(":
-                b_1 = i
-            elif expr[i] == ")" and b_1 == -1:
+                bracket_indexes.push(i)
+            elif expr[i] == ")" and bracket_indexes.is_empty():
                 raise SyntaxError("Неправильно расставлены скобки")
             elif expr[i] == ")":
-                b_2 = i
-                result = str(count_bracket(expr[b_1 + 1:b_2]))
-                return count_bracket(expr[:b_1] + result + expr[b_2 + 1:])
+                b_1 = bracket_indexes.pop()
+                result = str(count_expr(expr[b_1 + 1:i]))
+                return count_bracket(expr[:b_1] + result + expr[i + 1:], b_1)
     elif "(" in expr or ")" in expr:
         raise SyntaxError("Неправильно расставлены скобки")
     else:
@@ -60,15 +59,14 @@ def count_bracket(expr):
 def count_expr(expr):
     """
     Вычисляет математическое выражение в обратной польской нотации без скобок.
-    Поддерживает работу с int\float и операциями + \ - \ * \ ** \ // \ % \ /
-
+    Поддерживает работу с int | float и операциями + | - | * | ** | // | % | /
+    
     Args:
         expr (str): Математическое выражение без скобок в виде строки
 
     Returns:
         int | float: Результат вычисления выражения
     """
-    global numbers_stack
     tokens = expr.split()
     for token in tokens:
         if token.replace('.', '', 1).lstrip('+-').isdigit():
@@ -120,16 +118,14 @@ def count_expr(expr):
 
 
 def main() -> None:
-    global numbers_stack
     expr = input()
 
     try:
-        result = count_bracket(expr)
+        result = count_bracket(expr, 0)
         if not numbers_stack.items:
             print(result)
         else:
             raise SyntaxError("Лишние операнды")
-        #print(f"Stack: {numbers_stack.items}")
     except (SyntaxError, IndexError, ZeroDivisionError, TypeError) as e:
         print(f"Ошибка: {e}")
 

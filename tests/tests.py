@@ -28,7 +28,7 @@ def test_count_expr_zero_division():
 
 
 def test_count_expr_insufficient_operands():
-    with pytest.raises(IndexError, match="Удаление с пустого стека"):
+    with pytest.raises(IndexError, match="Недостаточно операндов"):
         count_expr("10 +")
 
 
@@ -43,7 +43,7 @@ def test_count_expr_insufficient_operands():
     ("100 (2 3 **) 10 / /", 125),
 ])
 def test_count_bracket_valid_expressions(expr, expected):
-    assert count_bracket(expr) == expected
+    assert count_bracket(expr, 0) == expected
 
 
 @pytest.mark.parametrize("expr", [
@@ -53,4 +53,4 @@ def test_count_bracket_valid_expressions(expr, expected):
 ])
 def test_count_bracket_syntax_error(expr):
     with pytest.raises(SyntaxError, match="Неправильно расставлены скобки"):
-        count_bracket(expr)
+        count_bracket(expr, 0)
