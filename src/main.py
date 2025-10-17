@@ -27,11 +27,26 @@ numbers_stack = Stack()
 bracket_indexes = Stack()
 
 
+def token_flush(token):
+    if "." in token and len(token) != 1:
+        numbers_stack.push(float(token))
+        token = ""
+        return token
+    elif token.isdigit():
+        numbers_stack.push(int(token))
+        token = ""
+        return token
+    elif "." in token and len(token) == 1:
+        raise SyntaxError(f"Неизвестный токен - {token}")
+    else:
+        return ""
+
+
 def count_bracket(expr, p):
     """
     Вычисляет математическое выражение в обратной польской нотации со скобками,
     путем рекурсивного раскрытия скобок
-    Поддерживает работу с int | float и операциями + | - | * | ** | // | % | /
+    Поддерживает работу с int | float и операциями + | - | * | ** | // | % | / | ~ # (унарные - +)
 
     Args:
         expr (str): Математическое выражение без скобок в виде строки
@@ -49,7 +64,10 @@ def count_bracket(expr, p):
             elif expr[i] == ")":
                 b_1 = bracket_indexes.pop()
                 result = str(count_expr(expr[b_1 + 1:i]))
-                return count_bracket(expr[:b_1] + result + expr[i + 1:], b_1)
+                if float(result) < 0:
+                    return count_bracket(expr[:b_1] + " " + result[1:] + "~" + expr[i + 1:], b_1)
+                else:
+                    return count_bracket(expr[:b_1] + " " + result + " " + expr[i + 1:], b_1)
     elif "(" in expr or ")" in expr:
         raise SyntaxError("Неправильно расставлены скобки")
     else:
@@ -59,7 +77,7 @@ def count_bracket(expr, p):
 def count_expr(expr):
     """
     Вычисляет математическое выражение в обратной польской нотации без скобок.
-    Поддерживает работу с int | float и операциями + | - | * | ** | // | % | /
+    Поддерживает работу с int | float и операциями + | - | * | ** | // | % | / | ~ # (унарные - +)
     
     Args:
         expr (str): Математическое выражение без скобок в виде строки
@@ -67,40 +85,79 @@ def count_expr(expr):
     Returns:
         int | float: Результат вычисления выражения
     """
-    tokens = expr.split()
-    for token in tokens:
-        if token.replace('.', '', 1).lstrip('+-').isdigit():
-            if '.' in token:
-                numbers_stack.push(float(token))
-            else:
-                numbers_stack.push(int(token))
-        elif token == "+":
+    token = ""
+    forward = 0
+    for i in range(len(expr)):
+        if expr[i].isdigit():
+            token += expr[i]
+        elif expr[i] == "+":
+            token = token_flush(token)
             op2 = numbers_stack.pop()
             op1 = numbers_stack.pop()
             numbers_stack.push(op1 + op2)
-        elif token == "-":
+        elif expr[i] == "-":
+            token = token_flush(token)
             op2 = numbers_stack.pop()
             op1 = numbers_stack.pop()
             numbers_stack.push(op1 - op2)
-        elif token == "*":
-            op2 = numbers_stack.pop()
+        elif expr[i] == ".":
+            if "." not in token:
+                token += "."
+            else:
+                raise SyntaxError(f"Неизвестный токен - {token + expr[i]}")
+        elif expr[i] == "~":
+            token = token_flush(token)
             op1 = numbers_stack.pop()
-            numbers_stack.push(op1 * op2)
-        elif token == "/":
-            op2 = numbers_stack.pop()
-            op1 = numbers_stack.pop()
-            if op2 == 0:
-                raise ZeroDivisionError("Деление на ноль")
-            numbers_stack.push(op1 / op2)
-        elif token == "//":
-            op2 = numbers_stack.pop()
-            op1 = numbers_stack.pop()
-            if not (isinstance(op1, int) and isinstance(op2, int)):
-                raise TypeError("// работает только с целыми")
-            if op2 == 0:
-                raise ZeroDivisionError("Деление на ноль")
-            numbers_stack.push(op1 // op2)
-        elif token == "%":
+            op1 *= -1
+            numbers_stack.push(op1)
+        elif expr[i] == "/":
+            if not forward:
+                token = token_flush(token)
+                if i + 2 <= len(expr):
+                    if expr[i + 1] == '/':
+                        op2 = numbers_stack.pop()
+                        op1 = numbers_stack.pop()
+                        if not (isinstance(op1, int) and isinstance(op2, int)):
+                            raise TypeError("// работает только с целыми")
+                        if op2 == 0:
+                            raise ZeroDivisionError("Деление на ноль")
+                        numbers_stack.push(op1 // op2)
+                        forward = 1
+                    else:
+                        op2 = numbers_stack.pop()
+                        op1 = numbers_stack.pop()
+                        if op2 == 0:
+                            raise ZeroDivisionError("Деление на ноль")
+                        numbers_stack.push(op1 / op2)
+                else:
+                    op2 = numbers_stack.pop()
+                    op1 = numbers_stack.pop()
+                    if op2 == 0:
+                        raise ZeroDivisionError("Деление на ноль")
+                    numbers_stack.push(op1 / op2)
+            else:
+                forward = 0
+        elif expr[i] == "*":
+            if not forward:
+                token = token_flush(token)
+                if i + 2 <= len(expr):
+                    if expr[i + 1] == '*':
+                        op2 = numbers_stack.pop()
+                        op1 = numbers_stack.pop()
+                        numbers_stack.push(op1 ** op2)
+                        forward = 1
+                    else:
+                        op2 = numbers_stack.pop()
+                        op1 = numbers_stack.pop()
+                        numbers_stack.push(op1 * op2)
+                else:
+                    op2 = numbers_stack.pop()
+                    op1 = numbers_stack.pop()
+                    numbers_stack.push(op1 * op2)
+            else:
+                forward = 0
+        elif expr[i] == "%":
+            token = token_flush(token)
             op2 = numbers_stack.pop()
             op1 = numbers_stack.pop()
             if not (isinstance(op1, int) and isinstance(op2, int)):
@@ -108,21 +165,22 @@ def count_expr(expr):
             if op2 == 0:
                 raise ZeroDivisionError("Деление на ноль")
             numbers_stack.push(op1 % op2)
-        elif token == "**":
-            op2 = numbers_stack.pop()
-            op1 = numbers_stack.pop()
-            numbers_stack.push(op1 ** op2)
+        elif expr[i] == " ":
+            token = token_flush(token)
+        elif expr[i] == "#":
+            token = token_flush(token)
         else:
-            raise SyntaxError(f"Неизвестный токен: {token}")
+            raise SyntaxError(f"Неизвестный токен - {expr[i]}")
+    token_flush(token)
     return numbers_stack.pop()
 
 
 def main() -> None:
-    expr = input()
+    expr = input("")
 
     try:
         result = count_bracket(expr, 0)
-        if not numbers_stack.items:
+        if numbers_stack.is_empty():
             print(result)
         else:
             raise SyntaxError("Лишние операнды")
