@@ -78,3 +78,9 @@ def test_count_bracket_valid_expressions(expr, expected):
 def test_count_bracket_syntax_error(expr):
     with pytest.raises(SyntaxError, match="Неправильно расставлены скобки"):
         count_bracket(expr, 0)
+
+
+def test_count_bracket_recursion_error():
+    expr_r = "(" * 2000 + "1" + ")" * 2000
+    with pytest.raises(RecursionError):
+        count_bracket(expr_r, 1)

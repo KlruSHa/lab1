@@ -1,4 +1,4 @@
-class Stack:
+class Stack:   # Обычная реализация стека
     """
     Класс, реализующий стек, с основными методами.
 
@@ -28,15 +28,24 @@ bracket_indexes = Stack()
 
 
 def token_flush(token):
-    if "." in token and len(token) != 1:
+    """
+    Вспомогательная функция, которая скидывает в стек операнд
+
+    Args:
+        token (str): Операнд
+
+    Returns:
+        str: Пустая строка
+    """
+    if "." in token and len(token) != 1: # Кладем в стек вещ. число и проверяем, что это не просто точка
         numbers_stack.push(float(token))
         token = ""
         return token
-    elif token.isdigit():
+    elif token.isdigit(): # Кладем в стек целое число
         numbers_stack.push(int(token))
         token = ""
         return token
-    elif "." in token and len(token) == 1:
+    elif "." in token and len(token) == 1: # Вызываем ошибку т.к не можем положить просто точку в стек
         raise SyntaxError(f"Неизвестный токен - {token}")
     else:
         return ""
@@ -55,23 +64,23 @@ def count_bracket(expr, p):
     Returns:
         int | float: Результат вычисления выражения
     """
-    if "(" in expr and ")" in expr:
+    if "(" in expr and ")" in expr:  # Проверяем есть ли скобки
         for i in range(p, len(expr)):
             if expr[i] == "(":
                 bracket_indexes.push(i)
-            elif expr[i] == ")" and bracket_indexes.is_empty():
+            elif expr[i] == ")" and bracket_indexes.is_empty(): # Если встретили закрыв. скобку, но откр. не было, то это ошибка
                 raise SyntaxError("Неправильно расставлены скобки")
             elif expr[i] == ")":
                 b_1 = bracket_indexes.pop()
-                result = str(count_expr(expr[b_1 + 1:i]))
-                if float(result) < 0:
-                    return count_bracket(expr[:b_1] + " " + result[1:] + "~" + expr[i + 1:], b_1)
+                result = str(count_expr(expr[b_1 + 1:i]))  # Считаем выражение в скобке
+                if float(result) < 0: # Проверяем на отрицательность результат т.к унарные минусы у нас оператор и обрабатываются по другому
+                    return count_bracket(expr[:b_1] + " " + result[1:] + "~" + expr[i + 1:], b_1) # Рекурсивно вызываем, уже с результатом посчитанной скобки
                 else:
                     return count_bracket(expr[:b_1] + " " + result + " " + expr[i + 1:], b_1)
-    elif "(" in expr or ")" in expr:
+    elif "(" in expr or ")" in expr: # Если какой-то один вид скобок, то это ошибка
         raise SyntaxError("Неправильно расставлены скобки")
     else:
-        return count_expr(expr)
+        return count_expr(expr)  # Если скобок в выражении нет, то вызываем ф-ию, которая считает такие выражения
 
 
 def count_expr(expr):
@@ -87,34 +96,34 @@ def count_expr(expr):
     """
     token = ""
     forward = 0
-    for i in range(len(expr)):
-        if expr[i].isdigit():
+    for i in range(len(expr)): # Идем по символам и обрабатываем
+        if expr[i].isdigit(): # Если встретили число, то добавляем его к текущему токену
             token += expr[i]
-        elif expr[i] == "+":
-            token = token_flush(token)
-            op2 = numbers_stack.pop()
+        elif expr[i] == "+": # Если встретили оператор, то
+            token = token_flush(token) # Скидываем текущий токен в стек и очищаем токен
+            op2 = numbers_stack.pop() # Достаем из стека нужные нам операнды
             op1 = numbers_stack.pop()
-            numbers_stack.push(op1 + op2)
+            numbers_stack.push(op1 + op2) # Выполняем встретившийся нам оператор с операндами, которые мы достали
         elif expr[i] == "-":
             token = token_flush(token)
             op2 = numbers_stack.pop()
             op1 = numbers_stack.pop()
             numbers_stack.push(op1 - op2)
-        elif expr[i] == ".":
-            if "." not in token:
+        elif expr[i] == ".": # Если встретили точку, то
+            if "." not in token: # Проверяем, что она первая в токене
                 token += "."
             else:
-                raise SyntaxError(f"Неизвестный токен - {token + expr[i]}")
+                raise SyntaxError(f"Неизвестный токен - {token + expr[i]}") # Иначе ошибка и неверный токен
         elif expr[i] == "~":
             token = token_flush(token)
             op1 = numbers_stack.pop()
             op1 *= -1
             numbers_stack.push(op1)
-        elif expr[i] == "/":
+        elif expr[i] == "/": # Если встретили оператор, который может трактоваться по разному (/ //), то
             if not forward:
                 token = token_flush(token)
-                if i + 2 <= len(expr):
-                    if expr[i + 1] == '/':
+                if i + 2 <= len(expr): # Сначала проверяем, что можем посмотреть следующий символ, возможно он //
+                    if expr[i + 1] == '/': # Если след. символ оказался /, то выполняем //
                         op2 = numbers_stack.pop()
                         op1 = numbers_stack.pop()
                         if not (isinstance(op1, int) and isinstance(op2, int)):
@@ -123,13 +132,13 @@ def count_expr(expr):
                             raise ZeroDivisionError("Деление на ноль")
                         numbers_stack.push(op1 // op2)
                         forward = 1
-                    else:
+                    else: # Идем сюда, если след. символ был не / и выполняем обычный /
                         op2 = numbers_stack.pop()
                         op1 = numbers_stack.pop()
                         if op2 == 0:
                             raise ZeroDivisionError("Деление на ноль")
                         numbers_stack.push(op1 / op2)
-                else:
+                else: # Идем сюда, если не можем проверить след. символ и выполняем обычный /
                     op2 = numbers_stack.pop()
                     op1 = numbers_stack.pop()
                     if op2 == 0:
@@ -137,7 +146,7 @@ def count_expr(expr):
                     numbers_stack.push(op1 / op2)
             else:
                 forward = 0
-        elif expr[i] == "*":
+        elif expr[i] == "*": # Аналогично / //
             if not forward:
                 token = token_flush(token)
                 if i + 2 <= len(expr):
@@ -171,20 +180,20 @@ def count_expr(expr):
             token = token_flush(token)
         else:
             raise SyntaxError(f"Неизвестный токен - {expr[i]}")
-    token_flush(token)
+    token_flush(token) # Обрабатываем токен, если он стоит последним, например (7)
     return numbers_stack.pop()
 
 
 def main() -> None:
-    expr = input("")
+    expr = input("Введите выражение в RPN: ")  # Ввод выражения
 
     try:
         result = count_bracket(expr, 0)
         if numbers_stack.is_empty():
-            print(result)
+            print(f"Результат вычислений: {result}")
         else:
             raise SyntaxError("Лишние операнды")
-    except (SyntaxError, IndexError, ZeroDivisionError, TypeError) as e:
+    except (SyntaxError, IndexError, ZeroDivisionError, TypeError, RecursionError) as e:
         print(f"Ошибка: {e}")
 
 
